@@ -1,87 +1,188 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package controller;
 
+import dal.CategoryDAO;
+import dal.SparePartDAO;
 import java.io.IOException;
-import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import model.Category;
+import model.SparePart;
 
-/**
- *
- * @author HBDELL
- */
-@WebServlet(name = "ManagePartController", urlPatterns = {"/admin/manage"})
+@WebServlet(name = "ManagePartController", urlPatterns = {"/admin/manage-parts"})
 public class ManagePartController extends HttpServlet {
 
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+    private static final long serialVersionUID = 1L;
+    private SparePartDAO sparePartDAO;
+    private CategoryDAO categoryDAO;
+
+    @Override
+    public void init() throws ServletException {
+        this.sparePartDAO = new SparePartDAO();
+        this.categoryDAO = new CategoryDAO();
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet ManagePartController</title>");            
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet ManagePartController at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+
+        try {
+            List<SparePart> parts = sparePartDAO.getAll();
+            String q = req.getParameter("q");
+            if (q != null && !q.trim().isEmpty()) {
+                String keyword = q.trim().toLowerCase(Locale.ROOT);
+                List<SparePart> filteredParts = new ArrayList<>();
+                for (SparePart part : parts) {
+                    Category c = new Category();
+                    String partCode = "LK" + part.getPartId();
+                    String name = part.getPartName() != null ? part.getPartName().toLowerCase(Locale.ROOT) : "";
+                    String category = part.getCategory().getCategoryName() != null ? part.getCategory().getCategoryName().toLowerCase(Locale.ROOT) : "";
+                    if (partCode.toLowerCase(Locale.ROOT).contains(keyword)
+                            || name.contains(keyword)
+                            || category.contains(keyword)) {
+                        filteredParts.add(part);
+                    }
+                }
+                parts = filteredParts;
+                req.setAttribute("q", q.trim());
+            }
+            int lowStockCount = sparePartDAO.countLowStock();
+            req.setAttribute("parts", parts);
+            req.setAttribute("lowStockCount", lowStockCount);
+            req.setAttribute("categories", categoryDAO.getAll());
+
+            // Handle edit mode
+            String editParam = req.getParameter("edit");
+            if (editParam != null && !editParam.isEmpty()) {
+                try {
+                    int editId = Integer.parseInt(editParam);
+                    SparePart editPart = sparePartDAO.getById(editId);
+                    req.setAttribute("editPart", editPart);
+                } catch (NumberFormatException ignored) {}
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            req.setAttribute("error", "Loi khi tai danh sach: " + e.getMessage());
         }
+
+        req.getRequestDispatcher("/views/admin/manage-parts.jsp").forward(req, resp);
     }
 
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        processRequest(request, response);
+
+        req.setCharacterEncoding("UTF-8");
+        String action = req.getParameter("action");
+
+        try {
+            if ("add".equals(action)) {
+                String partName = req.getParameter("partName");
+                String categoryIDStr = req.getParameter("categoryID");
+                String costPriceStr = req.getParameter("costPrice");
+                String priceStr = req.getParameter("price");
+                String stockStr = req.getParameter("stock");
+                String minStockStr = req.getParameter("minStock");
+
+                if (partName == null || partName.trim().isEmpty()) {
+                    forwardError(req, resp, "Vui long nhap ten linh kien.");
+                    return;
+                }
+
+                int categoryID = 1;
+                if (categoryIDStr != null && !categoryIDStr.isEmpty()) {
+                    try { categoryID = Integer.parseInt(categoryIDStr); } catch (NumberFormatException ignored) {}
+                }
+
+                double costPrice = 0, price = 0;
+                int stock = 0, minStock = 5;
+
+                if (costPriceStr != null && !costPriceStr.isEmpty()) {
+                    try { costPrice = Double.parseDouble(costPriceStr); } catch (NumberFormatException ignored) {}
+                }
+                if (priceStr != null && !priceStr.isEmpty()) {
+                    try { price = Double.parseDouble(priceStr); } catch (NumberFormatException ignored) {}
+                }
+                if (stockStr != null && !stockStr.isEmpty()) {
+                    try { stock = Integer.parseInt(stockStr); } catch (NumberFormatException ignored) {}
+                }
+                if (minStockStr != null && !minStockStr.isEmpty()) {
+                    try { minStock = Integer.parseInt(minStockStr); } catch (NumberFormatException ignored) {}
+                }
+
+                sparePartDAO.create(partName.trim(), categoryID, costPrice, price, stock, minStock);
+                req.setAttribute("success", "Them linh kien thanh cong!");
+
+            } else if ("edit".equals(action)) {
+                String partIDStr = req.getParameter("partID");
+                String partName = req.getParameter("partName");
+                String priceStr = req.getParameter("price");
+                String stockStr = req.getParameter("stock");
+                String minStockStr = req.getParameter("minStock");
+
+                if (partIDStr == null || partIDStr.isEmpty() || partName == null || partName.trim().isEmpty()) {
+                    forwardError(req, resp, "Vui long nhap day du thong tin.");
+                    return;
+                }
+
+                int partID = Integer.parseInt(partIDStr);
+                double price = 0;
+                int stock = 0, minStock = 5;
+
+                if (priceStr != null && !priceStr.isEmpty()) {
+                    try { price = Double.parseDouble(priceStr); } catch (NumberFormatException ignored) {}
+                }
+                if (stockStr != null && !stockStr.isEmpty()) {
+                    try { stock = Integer.parseInt(stockStr); } catch (NumberFormatException ignored) {}
+                }
+                if (minStockStr != null && !minStockStr.isEmpty()) {
+                    try { minStock = Integer.parseInt(minStockStr); } catch (NumberFormatException ignored) {}
+                }
+
+                sparePartDAO.update(partID, partName.trim(), BigDecimal.valueOf(price), stock, minStock);
+                req.setAttribute("success", "Cap nhat linh kien thanh cong!");
+
+            } else if ("import".equals(action)) {
+                String partIDStr = req.getParameter("partID");
+                String quantityStr = req.getParameter("quantity");
+                if (partIDStr != null && !partIDStr.isEmpty() && quantityStr != null && !quantityStr.isEmpty()) {
+                    int partID = Integer.parseInt(partIDStr);
+                    int quantity = Integer.parseInt(quantityStr);
+                    sparePartDAO.importStock(partID, quantity);
+                    req.setAttribute("success", "Nhap hang thanh cong!");
+                }
+            } else if ("delete".equals(action)) {
+                String partIDStr = req.getParameter("partID");
+                if (partIDStr != null && !partIDStr.isEmpty()) {
+                    try {
+                        int partID = Integer.parseInt(partIDStr);
+                        sparePartDAO.delete(partID);
+                        req.setAttribute("success", "Xoa linh kien thanh cong!");
+                    } catch (SQLException e) {
+                        req.setAttribute("error", e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            forwardError(req, resp, "Loi: " + e.getMessage());
+            return;
+        }
+
+        doGet(req, resp);
     }
 
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    private void forwardError(HttpServletRequest req, HttpServletResponse resp, String message)
             throws ServletException, IOException {
-        processRequest(request, response);
+        req.setAttribute("error", message);
+        doGet(req, resp);
     }
-
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
-    @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
 
 }
