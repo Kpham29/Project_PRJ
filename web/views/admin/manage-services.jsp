@@ -61,7 +61,7 @@
                     <c:when test="${not empty services}">
                         <c:forEach var="s" items="${services}">
                             <tr>
-                                <td><span class="fw-bold text-primary">DV${s.serviceID}</span></td>
+                                <td><span class="fw-bold text-primary">DV${s.serviceId}</span></td>
                                 <td class="fw-semibold">${s.serviceName}</td>
                                 <td class="text-muted small">${not empty s.description ? s.description : '---'}</td>
                                 <td class="fw-semibold text-success"><fmt:formatNumber value="${s.price}" pattern="#,##0" /> VND</td>
@@ -74,12 +74,12 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-1">
-                                        <a href="${pageContext.request.contextPath}/admin/manage-services?edit=${s.serviceID}" class="btn btn-sm btn-outline-warning btn-action" title="Chinh sua">
+                                        <a href="${pageContext.request.contextPath}/admin/manage-services?edit=${s.serviceId}" class="btn btn-sm btn-outline-warning btn-action" title="Chinh sua">
                                             <i class="fas fa-pen"></i>
                                         </a>
                                         <form action="${pageContext.request.contextPath}/admin/manage-services" method="post" style="display:inline;">
                                             <input type="hidden" name="action" value="toggle" />
-                                            <input type="hidden" name="serviceID" value="${s.serviceID}" />
+                                            <input type="hidden" name="serviceID" value="${s.serviceId}" />
                                             <button type="submit" class="btn btn-sm ${s.status == 'active' ? 'btn-outline-danger' : 'btn-outline-success'} btn-action" title="${s.status == 'active' ? 'Tam ngung' : 'Kich hoat'}">
                                                 <i class="fas fa-${s.status == 'active' ? 'pause' : 'play'}"></i>
                                             </button>

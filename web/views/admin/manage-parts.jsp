@@ -69,9 +69,9 @@
                     <c:when test="${not empty parts}">
                         <c:forEach var="p" items="${parts}">
                             <tr class="${p.stock <= p.minStock ? 'table-warning' : ''}">
-                                <td><span class="fw-bold text-primary">LK${p.partID}</span></td>
+                                <td><span class="fw-bold text-primary">LK${p.partId}</span></td>
                                 <td class="fw-semibold">${p.partName}</td>
-                                <td class="text-muted small">${p.categoryName}</td>
+                                <td class="text-muted small">${p.category.categoryName}</td>
                                 <td class="text-muted"><fmt:formatNumber value="${empty p.costPrice ? 0 : p.costPrice}" pattern="#,##0" /> VND</td>
                                 <td class="fw-semibold"><fmt:formatNumber value="${p.price}" pattern="#,##0" /> VND</td>
                                 <td>
@@ -96,17 +96,17 @@
                                 <td>
                                     <div class="d-flex gap-1">
                                         <c:if test="${p.stock <= p.minStock}">
-                                            <button class="btn btn-sm btn-outline-success btn-action" title="Nhap them" data-bs-toggle="modal" data-bs-target="#importModal${p.partID}">
+                                            <button class="btn btn-sm btn-outline-success btn-action" title="Nhap them" data-bs-toggle="modal" data-bs-target="#importModal${p.partId}">
                                                 <i class="fas fa-plus"></i>
                                             </button>
                                         </c:if>
-                                        <button class="btn btn-sm btn-outline-warning btn-action" title="Chinh sua" data-bs-toggle="modal" data-bs-target="#editPartModal${p.partID}">
+                                        <button class="btn btn-sm btn-outline-warning btn-action" title="Chinh sua" data-bs-toggle="modal" data-bs-target="#editPartModal${p.partId}">
                                             <i class="fas fa-pen"></i>
                                         </button>
                                         <form method="post" action="${pageContext.request.contextPath}/admin/manage-parts" style="display:inline;"
                                               onsubmit="return confirm('Xoa linh kien ${p.partName}? Hanh dong nay co the lam mat du lieu lien quan.')">
                                             <input type="hidden" name="action" value="delete" />
-                                            <input type="hidden" name="partID" value="${p.partID}" />
+                                            <input type="hidden" name="partID" value="${p.partId}" />
                                             <button type="submit" class="btn btn-sm btn-outline-danger btn-action" title="Xoa">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -143,7 +143,7 @@
                         <label class="form-label">Danh muc</label>
                         <select class="form-select" name="categoryID">
                             <c:forEach var="c" items="${categories}">
-                                <option value="${c.categoryID}">${c.categoryName}</option>
+                                <option value="${c.categoryId}">${c.categoryName}</option>
                             </c:forEach>
                         </select>
                     </div>
@@ -193,7 +193,7 @@
 
 <!-- Edit Part Modals -->
 <c:forEach var="p" items="${parts}">
-<div class="modal fade" id="editPartModal${p.partID}" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="editPartModal${p.partId}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -202,7 +202,7 @@
             </div>
             <form action="${pageContext.request.contextPath}/admin/manage-parts" method="post">
                 <input type="hidden" name="action" value="edit" />
-                <input type="hidden" name="partID" value="${p.partID}" />
+                <input type="hidden" name="partID" value="${p.partId}" />
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Ten linh kien <span class="text-danger">*</span></label>
@@ -240,7 +240,7 @@
 </div>
 
 <!-- Import Stock Modal -->
-<div class="modal fade" id="importModal${p.partID}" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="importModal${p.partId}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
             <div class="modal-header">
@@ -249,7 +249,7 @@
             </div>
             <form action="${pageContext.request.contextPath}/admin/manage-parts" method="post">
                 <input type="hidden" name="action" value="import" />
-                <input type="hidden" name="partID" value="${p.partID}" />
+                <input type="hidden" name="partID" value="${p.partId}" />
                 <div class="modal-body">
                     <p class="small text-muted mb-2">Linh kien: <strong>${p.partName}</strong></p>
                     <p class="small text-muted mb-3">Hien tai: <strong>${p.stock}</strong></p>
