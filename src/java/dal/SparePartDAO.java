@@ -231,17 +231,19 @@ public class SparePartDAO extends DBContext {
         p.setStock(rs.getInt("Stock"));
         p.setPrice(rs.getBigDecimal("Price"));
         p.setMinStock(rs.getInt("MinStock"));
-        BigDecimal costPrice = rs.getBigDecimal("CostPrice");
-        if (costPrice == null) {
-            costPrice = BigDecimal.ZERO;
-        }
-        p.setCostPrice(costPrice);
-        String categoryName = rs.getString("CategoryName");
-        if (categoryName == null || categoryName.trim().isEmpty()) {
-            categoryName = "Chung";
+        try {
+            BigDecimal costPrice = rs.getBigDecimal("CostPrice");
+            p.setCostPrice(costPrice != null ? costPrice : BigDecimal.ZERO);
+        } catch (SQLException e) {
+            p.setCostPrice(BigDecimal.ZERO);
         }
         Category c = new Category();
-        c.setCategoryName(rs.getString("CategoryName"));
+        try {
+            String categoryName = rs.getString("CategoryName");
+            c.setCategoryName(categoryName != null && !categoryName.trim().isEmpty() ? categoryName : "Chung");
+        } catch (SQLException e) {
+            c.setCategoryName("Chung");
+        }
         p.setCategory(c);
         return p;
     }
